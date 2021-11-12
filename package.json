@@ -1,0 +1,39 @@
+{
+  "name": "scrapers",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "allmusic": "node --loader ts-node/esm --experimental-specifier-resolution=node src/entities/allmusic.com/artists/get-all-artist-names.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sweetlikepete/scrapers.git"
+  },
+  "type": "module",
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/sweetlikepete/scrapers/issues"
+  },
+  "homepage": "https://github.com/sweetlikepete/scrapers#readme",
+  "dependencies": {
+    "better-sqlite3": "^7.4.4",
+    "cheerio": "^1.0.0-rc.10",
+    "cli-progress": "^3.9.1",
+    "colors": "^1.4.0",
+    "fs-extra": "^10.0.0",
+    "node-fetch": "^3.1.0",
+    "nodemon": "^2.0.15",
+    "ts-node": "^10.4.0"
+  },
+  "devDependencies": {
+    "@newsteam/eslint": "^0.0.56",
+    "@newsteam/eslint-config": "^0.0.59",
+    "@types/better-sqlite3": "^7.4.1",
+    "@types/cli-progress": "^3.9.2",
+    "@types/colors": "^1.2.1",
+    "@types/fs-extra": "^9.0.13",
+    "eslint": "^8.2.0"
+  }
+}

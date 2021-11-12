@@ -1,0 +1,30 @@
+
+{
+    "extends": "@newsteam",
+    "globals": {
+        "$": false,
+        "__dirname": false,
+        "__filename": false,
+        "Buffer": false,
+        "FB": false,
+        "ga": false,
+        "global": false,
+        "google": false,
+        "module": false,
+        "Modernizr": false,
+        "process": false,
+        "Promise": false,
+        "require": false,
+        "System": false,
+        "Uint8Array": false
+    },
+    "parserOptions": {
+        "project": "./tsconfig.json"
+    },
+    "plugins": [
+        "only-warn"
+    ],
+    "rules": {
+        "no-await-in-loop": "off"
+    }
+}
