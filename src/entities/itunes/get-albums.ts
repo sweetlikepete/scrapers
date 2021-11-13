@@ -9,7 +9,8 @@ import db from "better-sqlite3";
 import fs from "fs-extra";
 
 import {
-    fetchJSON, downloadImage
+    downloadImage,
+    fetchJSON
 } from "../../utils/fetch";
 
 

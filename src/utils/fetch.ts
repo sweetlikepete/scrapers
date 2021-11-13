@@ -129,22 +129,30 @@ export const fetchJSON = async <ResponseType>(url: string): Promise<[ResponseTyp
 
 
 export const downloadImage = async (url: string, filepath: string): Promise<string> => new Promise((resolve, reject) => {
-
+    
     const successCode = 200;
 
-    client.get(url, (response) => {
-        if(response.statusCode === successCode){
-            response.pipe(fs.createWriteStream(filepath))
-            .on("error", reject)
-            .once("close", () => {
-                resolve(filepath);
-            });
-        }else{
-            // Consume response data to free up memory
-            response.resume();
-            reject(new Error(`Request Failed With a Status Code: ${ String(response.statusCode) }`));
+    try{
 
-        }
-    });
+        client.get(url, (response) => {
+            if(response.statusCode === successCode){
+                response.pipe(fs.createWriteStream(filepath))
+                .on("error", reject)
+                .once("close", () => {
+                    resolve(filepath);
+                });
+            }else{
+                // Consume response data to free up memory
+                response.resume();
+                reject(new Error(`Request Failed With a Status Code: ${ String(response.statusCode) }`));
+    
+            }
+        });
+    
+    }catch(error){
+
+        reject(error);
+
+    }
 
 });
