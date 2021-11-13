@@ -4,6 +4,7 @@
   "description": "",
   "scripts": {
     "allmusic": "node --loader ts-node/esm --experimental-specifier-resolution=node src/entities/allmusic.com/get-artist-names.ts",
+    "itunes": "node --loader ts-node/esm --experimental-specifier-resolution=node src/entities/itunes/get-albums.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

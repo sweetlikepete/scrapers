@@ -8,7 +8,7 @@ import colors from "colors";
 import db from "better-sqlite3";
 import fs from "fs-extra";
 
-import { fetchText } from "../../utils/fetch-text";
+import { fetchText } from "../../utils/fetch";
 
 
 const outputDirectory = path.join(process.cwd(), "data/allmusic.com");
@@ -69,17 +69,15 @@ const getBatches = (): string[][] => {
 
 
 const batches = getBatches();
-const total = batches.flat().length;
 const bar = new cliProgress.SingleBar({
-    format: `${ colors.cyan(" {bar}") } {percentage}% | ETA: {eta}s | {value}/{total}`
+    format: `${ colors.cyan(" {bar}") } {percentage}% | ETA: {eta}s | batch: {value}/{total} | total: {globalTotal}`
 }, cliProgress.Presets.shades_classic);
 
-bar.start(total, 0);
+bar.start(batches.flat().length, 0);
+let total = 0;
 
-let completed = 0;
 
-
-for(const batch of getBatches()){
+for(const batch of batches){
 
     const batchResponse = await Promise.all(batch.map(async (date): Promise<string[]> => {
 
@@ -115,11 +113,9 @@ for(const batch of getBatches()){
 
     }));
 
-    completed += batchResponse.length;
+    total += batchResponse.flat().length;
 
-    bar.update(completed);
-
-    // Console.log(`Completed batch ${ completed } of ${ total }: total ${ names.length }`);
+    bar.increment(batchResponse.length, { globalTotal: total });
 
 }
 

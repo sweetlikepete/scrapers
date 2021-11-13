@@ -25,6 +25,9 @@
         "only-warn"
     ],
     "rules": {
-        "no-await-in-loop": "off"
+        "no-await-in-loop": "off",
+        "security/detect-non-literal-fs-filename": "off",
+        "node/no-process-exit": "off",
+        "more/no-c-like-loops": "off"
     }
 }
