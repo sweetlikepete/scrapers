@@ -40,7 +40,7 @@ interface ITunesSearchResponse{
 
 
 const limit = 200;
-const batchSize = 1;
+const batchSize = 3;
 const batchDelay = 0;
 const artistNamesDatabasePath = path.join(process.cwd(), "data/allmusic.com", "artist-names.db");
 const artistNamesDatabaseExists = await fs.pathExists(artistNamesDatabasePath);
@@ -104,12 +104,20 @@ for(const batch of batches){
 
                     if(!imageExists){
 
-                        await fs.ensureDir(outputFolder);
-                        await fs.writeFile(outputJSON, JSON.stringify(album));
+                        try{
 
-                        const imageUrl = album.artworkUrl100.replace("source/100x100", "source/500x500");
+                            await fs.ensureDir(outputFolder);
+                            await fs.writeFile(outputJSON, JSON.stringify(album));
+    
+                            const imageUrl = album.artworkUrl100.replace("source/100x100", "source/500x500");
 
-                        await downloadImage(imageUrl, outputImage);
+                            await downloadImage(imageUrl, outputImage);
+
+                        }catch(error){
+                            
+                            console.log(`Error writing image: ${ id }`);
+
+                        }
 
                     }
 
