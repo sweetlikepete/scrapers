@@ -7,25 +7,42 @@ import fetch from "node-fetch";
 import fs from "fs-extra";
 
 const cacheDirectory = path.join(process.cwd(), "cache/fetch");
+const fetchOptions = {
+    headers: {
+        "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
+        "accept-encoding": "gzip, deflate, br",
+        "accept-language": "en-US,en;q=0.9,de;q=0.8,pt;q=0.7,af;q=0.6",
+        "sec-ch-ua": "\"Google Chrome\";v=\"95\", \"Chromium\";v=\"95\", \";Not A Brand\";v=\"99\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "Windows",
+        "sec-fetch-dest": "document",
+        "sec-fetch-mode": "navigate",
+        "sec-fetch-site": "none",
+        "sec-fetch-user": "?1",
+        "upgrade-insecure-requests": "1",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36"
+        
+    }
+}
 
 
 await fs.ensureDir(cacheDirectory);
 
 
-const errorResponse = (error: unknown): [undefined, Error] => {
+const errorResponse = (error: unknown): [undefined, Error, boolean] => {
 
     if(error instanceof Error){
 
-        return [undefined, error];
+        return [undefined, error, false];
 
     }
 
-    return [undefined, new Error(String(error))];
+    return [undefined, new Error(String(error)), false];
 
 };
 
 
-export const fetchText = async (url: string): Promise<[string, undefined] | [undefined, Error]> => {
+export const fetchText = async (url: string, retries=3): Promise<[string, undefined, boolean] | [undefined, Error, boolean]> => {
 
     const cachePath = path.join(cacheDirectory, url);
     const exists = await fs.pathExists(cachePath);
@@ -34,7 +51,15 @@ export const fetchText = async (url: string): Promise<[string, undefined] | [und
 
         const cache = await fs.readFile(cachePath);
 
-        return [cache.toString(), undefined];
+        if(cache.toString()){
+
+            return [cache.toString(), undefined, true];
+
+        }else{
+
+            await fs.rm(cachePath);
+
+        }
 
     }
 
@@ -42,14 +67,30 @@ export const fetchText = async (url: string): Promise<[string, undefined] | [und
 
     try{
 
-        const response = await fetch(url);
+        const response = await fetch(url, fetchOptions);
         const body = await response.text();
 
-        await fs.writeFile(cachePath, body);
+        if(body){
 
-        return [body, undefined];
+            await fs.writeFile(cachePath, body);
+
+            return [body, undefined, false];
+    
+        }
+        
+        return [undefined, new Error(`Blank response from fetchText: ${ url }`), false];
 
     }catch(error: unknown){
+
+        if(retries > 0){
+
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+
+            console.log(`Retry ${ url } | ${ retries - 1 } remaining`);
+
+            return fetchText(url, retries - 1);
+
+        }
 
         return errorResponse(error);
 
@@ -57,13 +98,13 @@ export const fetchText = async (url: string): Promise<[string, undefined] | [und
 
 };
 
-export const fetchJSON = async <ResponseType>(url: string): Promise<[ResponseType, undefined] | [undefined, Error]> => {
+export const fetchJSON = async <ResponseType>(url: string): Promise<[ResponseType, undefined, boolean] | [undefined, Error, boolean]> => {
 
-    const [fetchTextResponse, fetchTextError] = await fetchText(url);
+    const [fetchTextResponse, fetchTextError, fetchTextCached] = await fetchText(url);
 
     if(fetchTextError){
 
-        return [undefined, fetchTextError];
+        return [undefined, fetchTextError, false];
 
     }
 
@@ -71,11 +112,11 @@ export const fetchJSON = async <ResponseType>(url: string): Promise<[ResponseTyp
 
         if(fetchTextResponse){
 
-            return [JSON.parse(fetchTextResponse) as ResponseType, undefined];
+            return [JSON.parse(fetchTextResponse) as ResponseType, undefined, fetchTextCached];
 
         }
 
-        return errorResponse("Blank response from fetch");
+        return errorResponse(`Blank response from fetchJSON ${ url }`);
 
 
     }catch(error: unknown){
