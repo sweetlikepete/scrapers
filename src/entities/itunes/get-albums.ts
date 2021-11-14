@@ -41,7 +41,7 @@ interface ITunesSearchResponse{
 
 
 const limit = 200;
-const requestDelay = 1000; // itunes api limits you to 20 calls per minute, which is 3000 ms
+const requestDelay = 500; // itunes api limits you to 20 calls per minute, which is 3000 ms
 const artistNamesDatabasePath = path.join(process.cwd(), "data/allmusic.com", "artist-names.db");
 const artistNamesDatabaseExists = await fs.pathExists(artistNamesDatabasePath);
 const outputDirectory = path.join(process.cwd(), "data/itunes");
@@ -96,7 +96,7 @@ for(const artistName of artistNames){
     }else{
 
         const artist = artistName.replaceAll(/[^0-9a-zA-Z ]/gu, "").replaceAll(" ", "+");
-        const albumSearchUrl = `https://itunes.apple.com/search?term=${ artist }&limit=${ limit }&entity=album`;
+        const albumSearchUrl = `https://itunes.apple.com/search?term=${ artist.toLocaleLowerCase() }&limit=${ limit }&entity=album`;
         const [response, error, cached] = await fetchJSON<ITunesSearchResponse>(albumSearchUrl);
         const completes: string[] = [];
     

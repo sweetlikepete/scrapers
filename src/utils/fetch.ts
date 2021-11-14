@@ -79,7 +79,7 @@ export const fetchText = async (url: string, retries=3): Promise<[string, undefi
             return [body, undefined, false];
     
         }
-        
+    
         return [undefined, new Error(`Blank response from fetchText: ${ url }`), false];
 
     }catch(error: unknown){
@@ -103,8 +103,11 @@ export const fetchText = async (url: string, retries=3): Promise<[string, undefi
 export const fetchJSON = async <ResponseType>(url: string): Promise<[ResponseType, undefined, boolean] | [undefined, Error, boolean]> => {
 
     const [fetchTextResponse, fetchTextError, fetchTextCached] = await fetchText(url);
+    const cachePath = path.join(cacheDirectory, url);
 
     if(fetchTextError){
+
+        await fs.rm(cachePath);
 
         return [undefined, fetchTextError, false];
 
@@ -122,6 +125,8 @@ export const fetchJSON = async <ResponseType>(url: string): Promise<[ResponseTyp
 
 
     }catch(error: unknown){
+
+        await fs.rm(cachePath);
 
         return errorResponse(error);
 
