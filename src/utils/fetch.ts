@@ -5,6 +5,8 @@ import client from "https";
 
 import fetch from "node-fetch";
 import fs from "fs-extra";
+import Downloader from "nodejs-file-downloader";
+
 
 const cacheDirectory = path.join(process.cwd(), "cache/fetch");
 const fetchOptions = {
@@ -128,31 +130,15 @@ export const fetchJSON = async <ResponseType>(url: string): Promise<[ResponseTyp
 };
 
 
-export const downloadImage = async (url: string, filepath: string): Promise<string> => new Promise((resolve, reject) => {
+export const downloadImage = async (url: string, filepath: string): Promise<void> => {
     
-    const successCode = 200;
-
-    try{
-
-        client.get(url, (response) => {
-            if(response.statusCode === successCode){
-                response.pipe(fs.createWriteStream(filepath))
-                .on("error", reject)
-                .once("close", () => {
-                    resolve(filepath);
-                });
-            }else{
-                // Consume response data to free up memory
-                response.resume();
-                reject(new Error(`Request Failed With a Status Code: ${ String(response.statusCode) }`));
+    const downloader = new Downloader({     
+        url,     
+        directory: path.dirname(filepath), 
+        fileName: path.basename(filepath),
+        maxAttempts:3
+    }) 
     
-            }
-        });
-    
-    }catch(error){
+    await downloader.download();
 
-        reject(error);
-
-    }
-
-});
+};

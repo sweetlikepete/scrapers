@@ -41,11 +41,17 @@ interface ITunesSearchResponse{
 
 
 const limit = 200;
-const requestDelay = 5000; // itunes api limits you to 20 calls per minute, which is 3000 ms
+const requestDelay = 2000; // itunes api limits you to 20 calls per minute, which is 3000 ms
 const artistNamesDatabasePath = path.join(process.cwd(), "data/allmusic.com", "artist-names.db");
 const artistNamesDatabaseExists = await fs.pathExists(artistNamesDatabasePath);
 const outputDirectory = path.join(process.cwd(), "data/itunes");
 const outputIndexLength = 3;
+const completedDatabasePath = path.join(outputDirectory, "completed-artist-names.db")
+
+
+const completedArtistNamesDatabase = db(completedDatabasePath);
+
+completedArtistNamesDatabase.exec("CREATE TABLE IF NOT EXISTS artists(name STRING PRIMARY KEY);");
 
 
 if(!artistNamesDatabaseExists){
@@ -56,9 +62,18 @@ if(!artistNamesDatabaseExists){
 
 }
 
+const completedArtistNames = completedArtistNamesDatabase.prepare("SELECT * FROM artists").all()
+.map((item: { name: string }) => item.name)
+.filter(Boolean)
+.filter((item) => typeof item === "string");
+
 
 const artistNamesDatabase = db(artistNamesDatabasePath);
-const artistNames = artistNamesDatabase.prepare("SELECT * FROM artists").all().map((item: { name: string }) => item.name);
+const artistNames = artistNamesDatabase.prepare("SELECT * FROM artists").all()
+.map((item: { name: string }) => item.name)
+.filter(Boolean)
+.filter((item) => typeof item === "string")
+.filter((item: string) => !completedArtistNames.includes(item))
 
 
 const bar = new cliProgress.SingleBar({
@@ -83,6 +98,7 @@ for(const artistName of artistNames){
     }else{
 
         const albums = response!.results.filter((item) => item.collectionType === "Album");
+        const hasError = false;
 
         if(albums.length > 0){
 
@@ -93,21 +109,34 @@ for(const artistName of artistNames){
                 const outputImage = path.join(outputFolder, `${ id }.jpg`);
                 const outputJSON = path.join(outputFolder, `${ id }.jpg.json`);
                 const imageExists = await fs.pathExists(outputImage);
+                const jsonExists = await fs.pathExists(outputJSON);
+                const imageUrl = album.artworkUrl100.replace("source/100x100", "source/500x500");
+
+                if(!jsonExists){
+
+                    await fs.ensureDir(outputFolder);
+
+                    try{
+
+                        await fs.writeFile(outputJSON, JSON.stringify(album));
+
+                    }catch(error){
+                        
+                        console.log(` Error writing json: ${ outputJSON }`);
+
+                    }
+
+                }
 
                 if(!imageExists){
 
                     try{
 
-                        await fs.ensureDir(outputFolder);
-                        await fs.writeFile(outputJSON, JSON.stringify(album));
-
-                        const imageUrl = album.artworkUrl100.replace("source/100x100", "source/500x500");
-
                         await downloadImage(imageUrl, outputImage);
 
                     }catch(error){
                         
-                        console.log(` Error writing image: ${ id }`);
+                        console.log(` Error writing image: ${ imageUrl }`);
 
                     }
 
@@ -121,17 +150,25 @@ for(const artistName of artistNames){
 
         }
 
+        const query = `INSERT or REPLACE INTO artists(name) VALUES ${ [artistName].map((name) => `('${ name.replaceAll("'", "") }')`).join(",") };`;
+
+        completedArtistNamesDatabase.exec(query);
+
     }
 
     total += completes.length;
 
     bar.increment(1, { globalTotal: total });
 
-    await new Promise((resolve) => {
+    if(!cached){
 
-        setTimeout(resolve, cached ? 0 : requestDelay);
+        await new Promise((resolve) => {
 
-    });
+            setTimeout(resolve, requestDelay);
+    
+        });
+    
+    }
 
 }
 
