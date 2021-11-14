@@ -51,7 +51,7 @@ const completedDatabasePath = path.join(outputDirectory, "completed-artist-names
 
 const completedArtistNamesDatabase = db(completedDatabasePath);
 
-completedArtistNamesDatabase.exec("CREATE TABLE IF NOT EXISTS artists(name STRING PRIMARY KEY);");
+completedArtistNamesDatabase.exec("CREATE TABLE IF NOT EXISTS artists(name STRING PRIMARY KEY, completes INT);");
 
 
 if(!artistNamesDatabaseExists){
@@ -61,6 +61,8 @@ if(!artistNamesDatabaseExists){
     process.exit();
 
 }
+
+const completedArtists = completedArtistNamesDatabase.prepare("SELECT * FROM artists").all()
 
 const completedArtistNames = completedArtistNamesDatabase.prepare("SELECT * FROM artists").all()
 .map((item: { name: string }) => item.name)
@@ -72,8 +74,7 @@ const artistNamesDatabase = db(artistNamesDatabasePath);
 const artistNames = artistNamesDatabase.prepare("SELECT * FROM artists").all()
 .map((item: { name: string }) => item.name)
 .filter(Boolean)
-.filter((item) => typeof item === "string")
-.filter((item: string) => !completedArtistNames.includes(item))
+.filter((item) => typeof item === "string");
 
 
 const bar = new cliProgress.SingleBar({
@@ -86,87 +87,98 @@ bar.start(artistNames.length, 0);
 
 for(const artistName of artistNames){
 
-    const artist = artistName.replaceAll(/[^0-9a-zA-Z ]/gu, "").replaceAll(" ", "+");
-    const albumSearchUrl = `https://itunes.apple.com/search?term=${ artist }&limit=${ limit }&entity=album`;
-    const [response, error, cached] = await fetchJSON<ITunesSearchResponse>(albumSearchUrl);
-    const completes: string[] = [];
+    if(completedArtistNames.includes(artistName)){
 
-    if(error){
-
-        console.log(` Error downloading ${ albumSearchUrl }`);
+        total += completedArtists.find((item) => item.name === artistName).completes;
+    
+        bar.increment(1, { globalTotal: total });
 
     }else{
 
-        const albums = response!.results.filter((item) => item.collectionType === "Album");
-        const hasError = false;
-
-        if(albums.length > 0){
-
-            const batchCompletes = await Promise.all(albums.map(async (album): Promise<string> => {
-
-                const id = String(album.artistId);
-                const outputFolder = path.join(outputDirectory, `${ id.slice(0, outputIndexLength) }`);
-                const outputImage = path.join(outputFolder, `${ id }.jpg`);
-                const outputJSON = path.join(outputFolder, `${ id }.jpg.json`);
-                const imageExists = await fs.pathExists(outputImage);
-                const jsonExists = await fs.pathExists(outputJSON);
-                const imageUrl = album.artworkUrl100.replace("source/100x100", "source/500x500");
-
-                if(!jsonExists){
-
-                    await fs.ensureDir(outputFolder);
-
-                    try{
-
-                        await fs.writeFile(outputJSON, JSON.stringify(album));
-
-                    }catch(error){
-                        
-                        console.log(` Error writing json: ${ outputJSON }`);
-
+        const artist = artistName.replaceAll(/[^0-9a-zA-Z ]/gu, "").replaceAll(" ", "+");
+        const albumSearchUrl = `https://itunes.apple.com/search?term=${ artist }&limit=${ limit }&entity=album`;
+        const [response, error, cached] = await fetchJSON<ITunesSearchResponse>(albumSearchUrl);
+        const completes: string[] = [];
+    
+        if(error){
+    
+            console.log(` Error downloading ${ albumSearchUrl }`);
+    
+        }else{
+    
+            const albums = response!.results.filter((item) => item.collectionType === "Album");
+            const hasError = false;
+    
+            if(albums.length > 0){
+    
+                const batchCompletes = await Promise.all(albums.map(async (album): Promise<string> => {
+    
+                    const id = String(album.artistId);
+                    const outputFolder = path.join(outputDirectory, `${ id.slice(0, outputIndexLength) }`);
+                    const outputImage = path.join(outputFolder, `${ id }.jpg`);
+                    const outputJSON = path.join(outputFolder, `${ id }.jpg.json`);
+                    const imageExists = await fs.pathExists(outputImage);
+                    const jsonExists = await fs.pathExists(outputJSON);
+                    const imageUrl = album.artworkUrl100.replace("source/100x100", "source/500x500");
+    
+                    if(!jsonExists){
+    
+                        await fs.ensureDir(outputFolder);
+    
+                        try{
+    
+                            await fs.writeFile(outputJSON, JSON.stringify(album));
+    
+                        }catch(error){
+                            
+                            console.log(` Error writing json: ${ outputJSON }`);
+    
+                        }
+    
                     }
-
-                }
-
-                if(!imageExists){
-
-                    try{
-
-                        await downloadImage(imageUrl, outputImage);
-
-                    }catch(error){
-                        
-                        console.log(` Error writing image: ${ imageUrl }`);
-
+    
+                    if(!imageExists){
+    
+                        try{
+    
+                            await downloadImage(imageUrl, outputImage);
+    
+                        }catch(error){
+                            
+                            console.log(` Error writing image: ${ imageUrl }`);
+    
+                        }
+    
                     }
+    
+                    return String(album.artistId);
+    
+                }));
+    
+                completes.push(...batchCompletes);
+    
+            }
+    
+            const query = `INSERT or REPLACE INTO artists(name, completes) VALUES ('${ artistName }', ${ completes.length })`;
+    
+            completedArtistNamesDatabase.exec(query);
+        
+            total += completes.length;
 
-                }
-
-                return String(album.artistId);
-
-            }));
-
-            completes.push(...batchCompletes);
+            bar.increment(1, { globalTotal: total });
+    
+            if(!cached){
+        
+                await new Promise((resolve) => {
+        
+                    setTimeout(resolve, requestDelay);
+            
+                });
+            
+            }
 
         }
 
-        const query = `INSERT or REPLACE INTO artists(name) VALUES ${ [artistName].map((name) => `('${ name.replaceAll("'", "") }')`).join(",") };`;
-
-        completedArtistNamesDatabase.exec(query);
-
-    }
-
-    total += completes.length;
-
-    bar.increment(1, { globalTotal: total });
-
-    if(!cached){
-
-        await new Promise((resolve) => {
-
-            setTimeout(resolve, requestDelay);
-    
-        });
     
     }
 
