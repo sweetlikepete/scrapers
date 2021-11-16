@@ -44,7 +44,7 @@ const requestDelay = 500; // Itunes api limits you to 20 calls per minute, which
 const artistNamesDatabasePath = path.join(process.cwd(), "data/allmusic.com", "artist-names.db");
 const artistNamesDatabaseExists = await fs.pathExists(artistNamesDatabasePath);
 const outputDirectory = path.join(process.cwd(), "data/itunes");
-const outputIndexLength = 3;
+const outputIndexLength = 4;
 const completedDatabasePath = path.join(outputDirectory, "completed-artist-names.db");
 
 await fs.ensureDir(outputDirectory);
@@ -112,7 +112,7 @@ for(const artistName of artistNames){
 
                 const batchCompletes = await Promise.all(albums.map(async (album): Promise<string> => {
 
-                    const id = String(album.artistId);
+                    const id = String(album.collectionId);
                     const outputFolder = path.join(outputDirectory, `${ id.slice(0, outputIndexLength) }`);
                     const outputImage = path.join(outputFolder, `${ id }.jpg`);
                     const outputJSON = path.join(outputFolder, `${ id }.jpg.json`);
