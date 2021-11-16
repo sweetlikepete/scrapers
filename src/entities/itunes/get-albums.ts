@@ -144,8 +144,6 @@ for(const artistName of artistNames){
 
                         }catch(error){
 
-                            console.log(error);
-
                             console.log(` Error writing image: ${ imageUrl }`);
 
                         }
