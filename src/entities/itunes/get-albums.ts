@@ -107,44 +107,51 @@ for(const artistName of artistNames){
         }else{
 
             const albums = response!.results.filter((item) => item.collectionType === "Album");
+            let errors = 0;
 
             if(albums.length > 0){
 
                 const batchCompletes = await Promise.all(albums.map(async (album): Promise<string> => {
 
                     const id = String(album.collectionId);
-                    const outputFolder = path.join(outputDirectory, `${ id.slice(0, outputIndexLength) }`);
+                    const outputFolder = path.join(outputDirectory, `${ id.slice(id.length - outputIndexLength) }`);
                     const outputImage = path.join(outputFolder, `${ id }.jpg`);
                     const outputJSON = path.join(outputFolder, `${ id }.jpg.json`);
                     const imageExists = await fs.pathExists(outputImage);
                     const jsonExists = await fs.pathExists(outputJSON);
                     const imageUrl = album.artworkUrl100.replace("source/100x100", "source/500x500");
 
-                    if(!jsonExists){
+                    if(!jsonExists || !imageExists){
 
                         await fs.ensureDir(outputFolder);
 
-                        try{
+                        if(!jsonExists){
 
-                            await fs.writeFile(outputJSON, JSON.stringify(album));
+                            try{
 
-                        }catch{
+                                await fs.writeFile(outputJSON, JSON.stringify(album));
 
-                            console.log(` Error writing json: ${ outputJSON }`);
+                            }catch{
+
+                                console.log(` Error writing json: ${ outputJSON }`);
+                                errors += 1;
+
+                            }
 
                         }
 
-                    }
+                        if(!imageExists){
 
-                    if(!imageExists){
+                            try{
 
-                        try{
+                                await downloadImage(imageUrl, outputImage);
 
-                            await downloadImage(imageUrl, outputImage);
+                            }catch{
 
-                        }catch(error){
+                                console.log(` Error writing image: ${ imageUrl }`);
+                                errors += 1;
 
-                            console.log(` Error writing image: ${ imageUrl }`);
+                            }
 
                         }
 
@@ -158,9 +165,13 @@ for(const artistName of artistNames){
 
             }
 
-            const query = `INSERT or REPLACE INTO artists(name, completes) VALUES ('${ artistName }', ${ completes.length })`;
+            if(errors === 0){
 
-            completedArtistNamesDatabase.exec(query);
+                const query = `INSERT or REPLACE INTO artists(name, completes) VALUES ('${ artistName }', ${ completes.length })`;
+
+                completedArtistNamesDatabase.exec(query);
+
+            }
 
             total += completes.length;
 

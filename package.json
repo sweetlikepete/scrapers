@@ -5,6 +5,7 @@
   "scripts": {
     "allmusic": "node --loader ts-node/esm --experimental-specifier-resolution=node src/entities/allmusic.com/get-artist-names.ts",
     "itunes": "node --loader ts-node/esm --experimental-specifier-resolution=node src/entities/itunes/get-albums.ts",
+    "itunes-move": "node --loader ts-node/esm --experimental-specifier-resolution=node src/entities/itunes/move-images.ts",
     "itunes-nodemon": "nodemon --exec \"node --loader ts-node/esm --experimental-specifier-resolution=node src/entities/itunes/get-albums.ts\"",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -25,6 +26,7 @@
     "cli-progress": "^3.9.1",
     "colors": "^1.4.0",
     "fs-extra": "^10.0.0",
+    "globby": "^12.0.2",
     "node-fetch": "^3.1.0",
     "nodejs-file-downloader": "^4.7.4",
     "nodemon": "^2.0.15",

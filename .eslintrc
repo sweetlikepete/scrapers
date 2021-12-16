@@ -5,7 +5,7 @@
         "$": false,
         "__dirname": false,
         "__filename": false,
-        "Buffer": false,
+        "Buffer": false, 
         "FB": false,
         "ga": false,
         "global": false,
