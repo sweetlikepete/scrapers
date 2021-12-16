@@ -107,7 +107,8 @@ for(const artistName of artistNames){
         }else{
 
             const albums = response!.results.filter((item) => item.collectionType === "Album");
-            let errors = 0;
+
+            let errors = false;
 
             if(albums.length > 0){
 
@@ -134,7 +135,8 @@ for(const artistName of artistNames){
                             }catch{
 
                                 console.log(` Error writing json: ${ outputJSON }`);
-                                errors += 1;
+
+                                return "";
 
                             }
 
@@ -149,7 +151,8 @@ for(const artistName of artistNames){
                             }catch{
 
                                 console.log(` Error writing image: ${ imageUrl }`);
-                                errors += 1;
+
+                                return "";
 
                             }
 
@@ -161,11 +164,15 @@ for(const artistName of artistNames){
 
                 }));
 
-                completes.push(...batchCompletes);
+                const successes = batchCompletes.filter(Boolean);
+
+                errors = successes.length !== batchCompletes.length;
+
+                completes.push(...successes);
 
             }
 
-            if(errors === 0){
+            if(!errors){
 
                 const query = `INSERT or REPLACE INTO artists(name, completes) VALUES ('${ artistName }', ${ completes.length })`;
 
