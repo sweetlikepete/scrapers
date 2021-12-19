@@ -113,7 +113,7 @@ const bar = new cliProgress.SingleBar({
 let total = lastTotal ?? 0;
 let totalErrors = 0;
 
-bar.start(artistNames.length, 0);
+bar.start(artistNamesRaw.length, artistNamesRaw.length - artistNames.length);
 
 
 for(const artistName of artistNames){
