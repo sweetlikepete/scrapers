@@ -46,6 +46,32 @@ const artistNamesDatabaseExists = await fs.pathExists(artistNamesDatabasePath);
 const outputDirectory = path.join(process.cwd(), "data/itunes");
 const outputIndexLength = 4;
 const completedDatabasePath = path.join(outputDirectory, "completed-artist-names.db");
+const lastArtistNameCache = path.join(outputDirectory, "last-artist-name.txt");
+
+
+const getLastArtistName = async (): Promise<[string, number] | [undefined, undefined]> => {
+
+    const exists = await fs.pathExists(lastArtistNameCache);
+
+    if(exists){
+
+        const cache = await fs.readFile(lastArtistNameCache);
+
+        if(cache.toString()){
+
+            return [
+                cache.toString().split("|||")[0].trim(),
+                Number(cache.toString().split("|||")[1].trim())
+            ];
+
+        }
+
+    }
+
+    return [undefined, undefined];
+
+};
+
 
 await fs.ensureDir(outputDirectory);
 
@@ -62,31 +88,37 @@ if(!artistNamesDatabaseExists){
 
 }
 
-const completedArtists = completedArtistNamesDatabase.prepare("SELECT * FROM artists").all();
+const completedArtists = completedArtistNamesDatabase.prepare("SELECT * FROM artists ORDER BY name").all();
 
-const completedArtistNames = completedArtistNamesDatabase.prepare("SELECT * FROM artists").all()
+const completedArtistNames = completedArtists
 .map((item: { name: string }) => item.name)
 .filter(Boolean)
 .filter((item) => typeof item === "string");
 
 
 const artistNamesDatabase = db(artistNamesDatabasePath);
-const artistNames = artistNamesDatabase.prepare("SELECT * FROM artists").all()
+const artistNamesRaw = artistNamesDatabase.prepare("SELECT * FROM artists ORDER BY name").all()
 .map((item: { name: string }) => item.name)
 .filter(Boolean)
 .filter((item) => typeof item === "string");
+const [lastArtistName, lastTotal] = await getLastArtistName();
+const lastArtistIndex = lastArtistName ? artistNamesRaw.indexOf(lastArtistName) : 0;
+
+const artistNames = artistNamesRaw.filter((item, index) => index >= lastArtistIndex);
 
 
 const bar = new cliProgress.SingleBar({
     format: `${ colors.cyan(" {bar}") } {percentage}% | ETA: {eta}s | batch: {value}/{total} | errors: {totalErrors} | total: {globalTotal}`
 }, cliProgress.Presets.shades_classic);
-let total = 0;
+let total = lastTotal ?? 0;
 let totalErrors = 0;
 
 bar.start(artistNames.length, 0);
 
 
 for(const artistName of artistNames){
+
+    await fs.writeFile(lastArtistNameCache, `${ artistName }|||${ total }`);
 
     if(completedArtistNames.includes(artistName)){
 
@@ -205,7 +237,6 @@ for(const artistName of artistNames){
             }
 
         }
-
 
     }
 
