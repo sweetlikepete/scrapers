@@ -78,9 +78,10 @@ const artistNames = artistNamesDatabase.prepare("SELECT * FROM artists").all()
 
 
 const bar = new cliProgress.SingleBar({
-    format: `${ colors.cyan(" {bar}") } {percentage}% | ETA: {eta}s | batch: {value}/{total} | total: {globalTotal}`
+    format: `${ colors.cyan(" {bar}") } {percentage}% | ETA: {eta}s | batch: {value}/{total} | errors: {totalErrors} | total: {globalTotal}`
 }, cliProgress.Presets.shades_classic);
 let total = 0;
+let totalErrors = 0;
 
 bar.start(artistNames.length, 0);
 
@@ -91,7 +92,10 @@ for(const artistName of artistNames){
 
         total += completedArtists.find((item) => item.name === artistName).completes;
 
-        bar.increment(1, { globalTotal: total });
+        bar.increment(1, {
+            globalTotal: total,
+            totalErrors
+        });
 
     }else{
 
@@ -102,7 +106,8 @@ for(const artistName of artistNames){
 
         if(error){
 
-            console.log(` Error downloading ${ albumSearchUrl }`);
+            // Console.log(` Error downloading ${ albumSearchUrl }`);
+            totalErrors += 1;
 
         }else{
 
@@ -134,7 +139,7 @@ for(const artistName of artistNames){
 
                             }catch{
 
-                                console.log(` Error writing json: ${ outputJSON }`);
+                                // Console.log(` Error writing json: ${ outputJSON }`);
 
                                 return "";
 
@@ -150,7 +155,7 @@ for(const artistName of artistNames){
 
                             }catch{
 
-                                console.log(` Error writing image: ${ imageUrl }`);
+                                // Console.log(` Error writing image: ${ imageUrl }`);
 
                                 return "";
 
@@ -170,6 +175,8 @@ for(const artistName of artistNames){
 
                 completes.push(...successes);
 
+                totalErrors += batchCompletes.length - successes.length;
+
             }
 
             if(!errors){
@@ -182,7 +189,10 @@ for(const artistName of artistNames){
 
             total += completes.length;
 
-            bar.increment(1, { globalTotal: total });
+            bar.increment(1, {
+                globalTotal: total,
+                totalErrors
+            });
 
             if(!cached){
 

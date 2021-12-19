@@ -105,7 +105,11 @@ export const fetchJSON = async <ResponseType>(url: string): Promise<[ResponseTyp
 
     if(fetchTextError){
 
-        await fs.rm(cachePath);
+        try{
+
+            await fs.rm(cachePath);
+
+        }catch{}
 
         return [undefined, fetchTextError, false];
 
@@ -124,7 +128,11 @@ export const fetchJSON = async <ResponseType>(url: string): Promise<[ResponseTyp
 
     }catch(error: unknown){
 
-        await fs.rm(cachePath);
+        try{
+
+            await fs.rm(cachePath);
+
+        }catch{}
 
         return errorResponse(error);
 
