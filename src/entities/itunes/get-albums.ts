@@ -40,7 +40,7 @@ interface ITunesSearchResponse{
 
 
 const limit = 200;
-const requestDelay = 500; // Itunes api limits you to 20 calls per minute, which is 3000 ms
+const requestDelay = 750; // Itunes api limits you to 20 calls per minute, which is 3000 ms
 const artistNamesDatabasePath = path.join(process.cwd(), "data/allmusic.com", "artist-names.db");
 const artistNamesDatabaseExists = await fs.pathExists(artistNamesDatabasePath);
 const outputDirectory = path.join(process.cwd(), "data/itunes");
@@ -57,7 +57,7 @@ const getLastArtistName = async (): Promise<[string, number] | [undefined, undef
 
         const cache = await fs.readFile(lastArtistNameCache);
 
-        if(cache.toString()){
+        if(cache.toString() && cache.toString() !== ""){
 
             return [
                 cache.toString().split("|||")[0].trim(),
@@ -108,12 +108,16 @@ const artistNames = artistNamesRaw.filter((item, index) => index >= lastArtistIn
 
 
 const bar = new cliProgress.SingleBar({
-    format: `${ colors.cyan(" {bar}") } {percentage}% | ETA: {eta}s | batch: {value}/{total} | errors: {totalErrors} | total: {globalTotal}`
+    format: `${ colors.cyan(" {bar}") } {percentage}% | ETA: {eta}s | batch: {value}/{total} | errors: {totalErrors} | total: {globalTotal} | name: {letter}`
 }, cliProgress.Presets.shades_classic);
 let total = lastTotal ?? 0;
 let totalErrors = 0;
 
-bar.start(artistNamesRaw.length, artistNamesRaw.length - artistNames.length);
+bar.start(artistNamesRaw.length, artistNamesRaw.length - artistNames.length, {
+    globalTotal: total,
+    letter: artistNames[0],
+    totalErrors
+});
 
 
 for(const artistName of artistNames){
@@ -126,6 +130,7 @@ for(const artistName of artistNames){
 
         bar.increment(1, {
             globalTotal: total,
+            letter: artistName,
             totalErrors
         });
 
@@ -154,10 +159,12 @@ for(const artistName of artistNames){
                     const id = String(album.collectionId);
                     const outputFolder = path.join(outputDirectory, `${ id.slice(id.length - outputIndexLength) }`);
                     const outputImage = path.join(outputFolder, `${ id }.jpg`);
+                    const full = path.join(outputFolder, `${ id }.jpg.full`);
                     const outputJSON = path.join(outputFolder, `${ id }.jpg.json`);
                     const imageExists = await fs.pathExists(outputImage);
                     const jsonExists = await fs.pathExists(outputJSON);
-                    const imageUrl = album.artworkUrl100.replace("source/100x100", "source/500x500");
+                    const imageUrl = album.artworkUrl100;
+                    const fullPath = imageUrl.replace("source/100x100", "source/1000x1000");
 
                     if(!jsonExists || !imageExists){
 
@@ -195,6 +202,8 @@ for(const artistName of artistNames){
 
                         }
 
+                        await fs.writeFile(full, fullPath);
+
                     }
 
                     return String(album.artistId);
@@ -223,6 +232,7 @@ for(const artistName of artistNames){
 
             bar.increment(1, {
                 globalTotal: total,
+                letter: artistName,
                 totalErrors
             });
 

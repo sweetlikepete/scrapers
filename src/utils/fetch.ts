@@ -86,7 +86,7 @@ export const fetchText = async (url: string, retries = 3): Promise<[string, unde
 
             await new Promise((resolve) => setTimeout(resolve, 1000));
 
-            console.log(`Retry ${ url } | ${ retries - 1 } remaining`);
+            // console.log(`Retry ${ url } | ${ retries - 1 } remaining`);
 
             return fetchText(url, retries - 1);
 
@@ -149,7 +149,7 @@ export const downloadImage = async (url: string, filepath: string): Promise<void
         cloneFiles: false,
         directory: path.dirname(filepath),
         fileName: path.basename(filepath),
-        maxAttempts: 3,
+        maxAttempts: 1,
         url
     });
 
