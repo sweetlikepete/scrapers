@@ -40,7 +40,7 @@ interface ITunesSearchResponse{
 
 
 const limit = 200;
-const requestDelay = 750; // Itunes api limits you to 20 calls per minute, which is 3000 ms
+const requestDelay = 1000; // Itunes api limits you to 20 calls per minute, which is 3000 ms
 const artistNamesDatabasePath = path.join(process.cwd(), "data/allmusic.com", "artist-names.db");
 const artistNamesDatabaseExists = await fs.pathExists(artistNamesDatabasePath);
 const outputDirectory = path.join(process.cwd(), "data/itunes");
