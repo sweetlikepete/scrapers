@@ -136,8 +136,14 @@ for(const artistName of artistNames){
 
     }else{
 
-        const artist = artistName.replaceAll(/[^0-9a-zA-Z ]/gu, "").replaceAll(" ", "+");
-        const albumSearchUrl = `https://itunes.apple.com/search?term=${ artist.toLocaleLowerCase() }&limit=${ limit }&entity=album`;
+        const artist = artistName
+        .trim()
+        .split(" ")
+        .map((part) => encodeURIComponent(part.toLowerCase()))
+        .join("+");
+
+        // Const artist = artistName.replaceAll(/[^0-9a-zA-Z ]/gu, "").replaceAll(" ", "+").toLowerCase();
+        const albumSearchUrl = `https://itunes.apple.com/search?term=${ artist }&limit=${ limit }&entity=album`;
         const [response, error, cached] = await fetchJSON<ITunesSearchResponse>(albumSearchUrl);
         const completes: string[] = [];
 
